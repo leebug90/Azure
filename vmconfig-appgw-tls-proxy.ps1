@@ -18,7 +18,7 @@ certutil -f -p Password1 -importpfx c:\temp1\backend.pfx
 Remove-Item "C:\inetpub\wwwroot\iisstart.htm"
 
 # Configure IIS HTTPS binding using previously imported self signed certificate
-$Cert = Get-ChildItem Cert:\LocalMachine\My\ | ? Subject -eq "CN=*.leebug.biz"
+$Cert = Get-ChildItem Cert:\LocalMachine\My\ | ? Subject -eq "CN=backend.fabrikam.com"
 New-WebBinding -Name "Default Web Site" -Protocol https -Port 443
 (Get-WebBinding -Name "Default Web Site" -Protocol https -Port 443).AddSslCertificate($Cert.Thumbprint, "my")
 
