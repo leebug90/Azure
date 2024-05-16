@@ -1,3 +1,7 @@
+# Allow ICMP
+netsh advfirewall firewall add rule name="Allow ICMPv4" protocol=icmpv4:8,any dir=in action=allow
+netsh advfirewall firewall add rule name="Allow ICMPv6" protocol=icmpv6:8,any dir=in action=allow
+
 # Install IIS with ASP.Net support
 Install-WindowsFeature -name Web-Server, Web-Asp-Net45 -IncludeManagementTools
 
