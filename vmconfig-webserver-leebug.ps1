@@ -22,9 +22,9 @@ certutil -f -p poshacme -importpfx c:\temp1\backend.pfx
 Remove-Item "C:\inetpub\wwwroot\iisstart.htm"
 
 # Configure IIS HTTPS binding using previously imported self signed certificate
-$Cert = Get-ChildItem Cert:\LocalMachine\My\ | ? Subject -eq "CN=backend.fabrikam.com"
+$Cert = Get-ChildItem Cert:\LocalMachine\My\ | ? Subject -eq "CN=*.leebug.biz"
 New-WebBinding -Name "Default Web Site" -Protocol https -Port 443
 (Get-WebBinding -Name "Default Web Site" -Protocol https -Port 443).AddSslCertificate($Cert.Thumbprint, "my")
 
 # Remove http binding
-Remove-WebBinding -Protocol http -Port 80
+#Remove-WebBinding -Protocol http -Port 80
