@@ -1,21 +1,21 @@
 # Pass all arguments to variables
-$AKS_NAME = $1
-$IDENTITY_RESOURCE_NAME = $2
-$RESOURCE_GROUP = $3
-$VNET_NAME = $4
-$ALB_SUBNET_NAME = $5 
-$ALB_Version = $6
+AKS_NAME=$1
+IDENTITY_RESOURCE_NAME=$2
+RESOURCE_GROUP=$3
+VNET_NAME=$4
+ALB_SUBNET_NAME=$5 
+ALB_Version=$6
 
 echo "arguments ==> $1 $2 $3 $4 $5 $6"
 echo "saved data from arguments ==> $AKS_NAME $IDENTITY_RESOURCE_NAME $RESOURCE_GROUP $VNET_NAME $ALB_SUBNET_NAME $ALB_Version"
 
 # Create a user managed identity for ALB controller and federate the identity as Workload identity to use in AKS cluster
-$mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
-$mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
+mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
+mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
 
 echo "Creating identity $IDENTITY_RESOURCE_NAME in resource group $RESOURCE_GROUP"
 #az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
-$principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
+principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
 
 echo "Waiting 60 seconds to allow for replication of the identity..."
 sleep 60
@@ -24,7 +24,7 @@ echo "Apply Reader role to the AKS managed cluster resource group for the newly 
 az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "acdd72a7-3385-48ef-bd42-f606fba81ae7" # Reader role
 
 echo "Set up federation with AKS OIDC issuer"
-$AKS_OIDC_ISSUER="$(az aks show -n "$AKS_NAME" -g "$RESOURCE_GROUP" --query "oidcIssuerProfile.issuerUrl" -o tsv)"
+AKS_OIDC_ISSUER="$(az aks show -n "$AKS_NAME" -g "$RESOURCE_GROUP" --query "oidcIssuerProfile.issuerUrl" -o tsv)"
 az identity federated-credential create --name "azure-alb-identity" `
     --identity-name "$IDENTITY_RESOURCE_NAME" `
     --resource-group $RESOURCE_GROUP `
@@ -47,7 +47,7 @@ sleep 10
 
 # Delegate a subnet to association resource
 az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
-$ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
+ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
 echo "ALB subnet ID: $ALB_SUBNET_ID"
 
 
@@ -58,15 +58,15 @@ az role assignment create --assignee-object-id $principalId --assignee-principal
 az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
 
 # Create ApplicationLoadBalancer Kubernetes resource
-$myNameSpace = @'
+myNameSpace = @'
 apiVersion: v1
 kind: Namespace
 metadata:
   name: alb-test-infra
 '@
-$myNameSpace | kubectl.exe apply -f -
+myNameSpace | kubectl apply -f -
 
-$myAppLB = @"
+myAppLB = @"
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
@@ -76,13 +76,13 @@ spec:
   associations:
   - $ALB_SUBNET_ID
 "@
-$myAppLB | kubectl.exe apply -f -
+myAppLB | kubectl apply -f -
 
 # Deploy sample HTTP application
 kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml
 
 # Deploy the required Gateway API resources
-$myGateway = @"
+myGateway = @"
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
@@ -107,14 +107,14 @@ spec:
         group: ""
         name: listener-tls-secret
 "@
-$myGateway | kubectl.exe apply -f -
+myGateway | kubectl apply -f -
 
 # Verify the status
 echo "Very the status of Gateway API resoruces ...."
 kubectl get gateway gateway-01 -n test-infra -o yaml
 
 # Deploy HTTP Route
-$httpRoute1 = @"
+httpRoute1 = @"
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -128,7 +128,7 @@ spec:
     - name: echo
       port: 80
 "@
-$httpRoute1 | kubectl.exe apply -f -
+httpRoute1 | kubectl apply -f -
 
 # Verify Http Route
 sleep 30
@@ -136,7 +136,7 @@ echo "Verify Http Route...."
 kubectl get httproute https-route -n test-infra -o yaml
 
 # Getting FQDN for testing
-$testfqdn=$(kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}')
+testfqdn=$(kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}')
 
 echo "======================================================"
 echo " curl -kv https://$testfqdn/"
