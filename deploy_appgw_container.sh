@@ -1,10 +1,10 @@
 # Pass all arguments to variables
-$AKS_NAME = 
-$IDENTITY_RESOURCE_NAME =
-$RESOURCE_GROUP = 
-$VNET_NAME = 
-$ALB_SUBNET_NAME = 
-$ALB_Version = 
+$AKS_NAME = $1
+$IDENTITY_RESOURCE_NAME = $2
+$RESOURCE_GROUP = $3
+$VNET_NAME = $4
+$ALB_SUBNET_NAME = $5 
+$ALB_Version = $6
 
 # Create a user managed identity for ALB controller and federate the identity as Workload identity to use in AKS cluster
 $mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
