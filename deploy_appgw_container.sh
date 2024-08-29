@@ -39,6 +39,9 @@ helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-co
      --version $ALB_Version `
      --set albController.podIdentity.clientID=$(az identity show -g $RESOURCE_GROUP -n azure-alb-identity --query clientId -o tsv)
 
+echo "Wait for 10 seconds after installing ALB controller..."
+sleep 10
+
 # Delegate a subnet to association resource
 az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
 $ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
