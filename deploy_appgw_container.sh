@@ -11,7 +11,7 @@ $mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME
 $mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
 
 echo "Creating identity $IDENTITY_RESOURCE_NAME in resource group $RESOURCE_GROUP"
-az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
+#az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
 $principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
 
 echo "Waiting 60 seconds to allow for replication of the identity..."
