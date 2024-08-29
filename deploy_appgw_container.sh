@@ -37,6 +37,12 @@ az identity federated-credential create --name "azure-alb-identity" `
 # otherwise, use the options
 # --namespace <helm-resource-namespace>
 # --set albController.namespace=<alb-controller-namespace>
+
+# Install Helm
+echo "Installing Helm..."
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+sleep 5
+
 az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_NAME --overwrite-existing
 helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller `
      --version $ALB_Version `
