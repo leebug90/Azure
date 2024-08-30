@@ -7,21 +7,23 @@ ALB_SUBNET_NAME=$5
 ALB_Version=$6
 
 echo "data from arguments ==> $AKS_NAME $IDENTITY_RESOURCE_NAME $RESOURCE_GROUP $VNET_NAME $ALB_SUBNET_NAME $ALB_Version"
-echo "\n\r"
+echo "Install kubectl.."
+az aks install-cli --only-show-errors
+sleep 5
 
 # Create a user managed identity for ALB controller and federate the identity as Workload identity to use in AKS cluster
 mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
 mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
 
-echo "Creating identity $IDENTITY_RESOURCE_NAME in resource group $RESOURCE_GROUP"
-az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
+#echo "Creating identity $IDENTITY_RESOURCE_NAME in resource group $RESOURCE_GROUP"
+#az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
 principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
 
 echo "Waiting 60 seconds to allow for replication of the identity..."
 sleep 60
 
 echo "Apply Reader role to the AKS managed cluster resource group for the newly provisioned identity"
-az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "acdd72a7-3385-48ef-bd42-f606fba81ae7" # Reader role
+#az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "acdd72a7-3385-48ef-bd42-f606fba81ae7" # Reader role
 
 echo "Set up federation with AKS OIDC issuer"
 AKS_OIDC_ISSUER="$(az aks show -n "$AKS_NAME" -g "$RESOURCE_GROUP" --query "oidcIssuerProfile.issuerUrl" -o tsv)"
@@ -43,7 +45,9 @@ echo "Installing Helm..."
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 sleep 5
 
+echo "login to AKS cluster to use kubctl"
 az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_NAME --overwrite-existing
+
 helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller `
      --version $ALB_Version `
      --set albController.podIdentity.clientID=$(az identity show -g $RESOURCE_GROUP -n azure-alb-identity --query clientId -o tsv)
@@ -52,27 +56,28 @@ echo "Wait for 10 seconds after installing ALB controller..."
 sleep 10
 
 # Delegate a subnet to association resource
-az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
+#az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
 ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
-echo "ALB subnet ID: $ALB_SUBNET_ID"
+echo "ALB subnet ID==> $ALB_SUBNET_ID"
 
 
 # Delegate AppGw for Containers Configuration Manager role to AKS Managed Cluster RG
-az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "fbc52c3f-28ad-4303-a892-8a056630b8f1" 
+#az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "fbc52c3f-28ad-4303-a892-8a056630b8f1" 
 
 # Delegate Network Contributor permission for join to association subnet
-az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
+#az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
 
 # Create ApplicationLoadBalancer Kubernetes resource
-myNameSpace = @'
+command = "cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
 metadata:
   name: alb-test-infra
-'@
-myNameSpace | kubectl apply -f -
+EOF"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
-myAppLB = @"
+
+command = "cat <<EOF | kubectl apply -f -
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
@@ -81,14 +86,15 @@ metadata:
 spec:
   associations:
   - $ALB_SUBNET_ID
-"@
-myAppLB | kubectl apply -f -
+EOF"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy sample HTTP application
-kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml
+command = "kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy the required Gateway API resources
-myGateway = @"
+command = "cat <<EOF | kubectl apply -f -
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
@@ -112,15 +118,16 @@ spec:
       - kind : Secret
         group: ""
         name: listener-tls-secret
-"@
-myGateway | kubectl apply -f -
+EOF"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Verify the status
-echo "Very the status of Gateway API resoruces ...."
-kubectl get gateway gateway-01 -n test-infra -o yaml
+echo "Verify the status of Gateway API resoruces ...."
+command = "kubectl get gateway gateway-01 -n test-infra -o yaml"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy HTTP Route
-httpRoute1 = @"
+command = "cat <<EOF | kubectl apply -f -
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -133,13 +140,14 @@ spec:
   - backendRefs:
     - name: echo
       port: 80
-"@
-httpRoute1 | kubectl apply -f -
+EOF"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Verify Http Route
 sleep 30
 echo "Verify Http Route...."
-kubectl get httproute https-route -n test-infra -o yaml
+command = "kubectl get httproute https-route -n test-infra -o yaml"
+az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Getting FQDN for testing
 testfqdn=$(kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}')
