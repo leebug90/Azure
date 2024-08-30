@@ -149,8 +149,44 @@ echo "Verify Http Route...."
 command = "kubectl get httproute https-route -n test-infra -o yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
-# Getting FQDN for testing
-testfqdn=$(kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}')
+# Wait till FQDN is programmed & Get FQDN
+# Initialize the start time
+start_time=$(date +%s)
+
+# Set the timeout duration (in seconds)
+timeout_duration=300
+
+# Set the check interval (in seconds)
+check_interval=5
+
+command = "kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}'"
+testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
+
+while [["$testfqdn" == ""]]; do
+    # Get the current time
+    current_time=$(date +%s)
+
+    # Calculate the elapsed time
+    elapsed_time=$((current_time - start_time))
+
+    # Check if timeout duration has been reached
+    if (( elapsed_time >= timeout_duration )); then
+        echo "Timeout reached: testfqdn is still not 'ok'."
+        exit 1
+    fi
+
+    # Check the value of testfqdn
+    testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
+    if [[ "$testfqdn" != "" ]]; then
+        echo "test_result is 'ok'."
+        break
+    else
+        echo "Waiting for testfqdn to become 'ok'... (Elapsed time: ${elapsed_time}s)"
+    fi
+
+    # Wait for the specified check interval before checking again
+    sleep $check_interval
+done    
 
 echo "======================================================"
 echo " curl -kv https://$testfqdn/"
