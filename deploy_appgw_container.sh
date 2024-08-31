@@ -27,10 +27,10 @@ echo "Apply Reader role to the AKS managed cluster resource group for the newly 
 
 echo "Set up federation with AKS OIDC issuer"
 AKS_OIDC_ISSUER="$(az aks show -n "$AKS_NAME" -g "$RESOURCE_GROUP" --query "oidcIssuerProfile.issuerUrl" -o tsv)"
-az identity federated-credential create --name "azure-alb-identity" `
-    --identity-name "$IDENTITY_RESOURCE_NAME" `
-    --resource-group $RESOURCE_GROUP `
-    --issuer "$AKS_OIDC_ISSUER" `
+az identity federated-credential create --name "azure-alb-identity" \
+    --identity-name "$IDENTITY_RESOURCE_NAME" \
+    --resource-group $RESOURCE_GROUP \
+    --issuer "$AKS_OIDC_ISSUER" \
     --subject "system:serviceaccount:azure-alb-system:alb-controller-sa"
 
 # Install ALB controller in the default namespaces 
@@ -48,8 +48,8 @@ sleep 5
 echo "login to AKS cluster to use kubctl"
 az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_NAME --overwrite-existing
 
-helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller `
-     --version $ALB_Version `
+helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller \
+     --version $ALB_Version \
      --set albController.podIdentity.clientID=$(az identity show -g $RESOURCE_GROUP -n azure-alb-identity --query clientId -o tsv)
 
 echo "Wait for 10 seconds after installing ALB controller..."
