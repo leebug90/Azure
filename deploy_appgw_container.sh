@@ -68,7 +68,7 @@ echo "ALB subnet ID==> $ALB_SUBNET_ID"
 #az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
 
 # Create ApplicationLoadBalancer Kubernetes resource
-command = "kubectl apply -f - <<EOF
+command="kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -77,7 +77,7 @@ EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 
-command = "kubectl apply -f - <<EOF
+command="kubectl apply -f - <<EOF
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
@@ -90,11 +90,11 @@ EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy sample HTTP application
-command = "kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
+command="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy the required Gateway API resources
-command = "kubectl apply -f - <<EOF
+command="kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
@@ -123,11 +123,11 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 
 # Verify the status
 echo "Verify the status of Gateway API resoruces ...."
-command = "kubectl get gateway gateway-01 -n test-infra -o yaml"
+command="kubectl get gateway gateway-01 -n test-infra -o yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy HTTP Route
-command = "kubectl apply -f - <<EOF
+command="kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -146,7 +146,7 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 # Verify Http Route
 sleep 30
 echo "Verify Http Route...."
-command = "kubectl get httproute https-route -n test-infra -o yaml"
+command="kubectl get httproute https-route -n test-infra -o yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Wait till FQDN is programmed & Get FQDN
@@ -159,7 +159,7 @@ timeout_duration=300
 # Set the check interval (in seconds)
 check_interval=5
 
-command = "kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}'"
+command="kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}'"
 testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
 
 while [["$testfqdn" == ""]]; do
