@@ -68,7 +68,7 @@ echo "ALB subnet ID==> $ALB_SUBNET_ID"
 #az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
 
 # Create ApplicationLoadBalancer Kubernetes resource
-command = "cat <<EOF | kubectl apply -f -
+command = "kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -77,7 +77,7 @@ EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 
-command = "cat <<EOF | kubectl apply -f -
+command = "kubectl apply -f - <<EOF
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
@@ -94,7 +94,7 @@ command = "kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy the required Gateway API resources
-command = "cat <<EOF | kubectl apply -f -
+command = "kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
@@ -127,7 +127,7 @@ command = "kubectl get gateway gateway-01 -n test-infra -o yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy HTTP Route
-command = "cat <<EOF | kubectl apply -f -
+command = "kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
