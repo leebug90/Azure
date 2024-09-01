@@ -5,6 +5,6 @@ RG=$1
 az sshkey create --name "mySSHKey" --resource-group "$RG"
 
 # Save a public key
-AZ_SCRIPTS_OUTPUT_PATH=$(az sshkey show --name "mySSHKey" --resource-group "$RG")
-
+result=$(az sshkey show --name "mySSHKey" --resource-group "$RG")
+echo $result > $AZ_SCRIPTS_OUTPUT_PATH
 
