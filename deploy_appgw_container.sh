@@ -162,7 +162,7 @@ check_interval=5
 command="kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addresses[0].value}'"
 testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
 
-while [["$testfqdn" == ""]]; do
+while [["$testfqdn" != *"alb.azure.com"*]]; do
     # Get the current time
     current_time=$(date +%s)
 
@@ -177,7 +177,7 @@ while [["$testfqdn" == ""]]; do
 
     # Check the value of testfqdn
     testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
-    if [[ "$testfqdn" != "" ]]; then
+    if [["$testfqdn" == *"alb.azure.com"*]]; then
         echo "test_result is 'ok'."
         break
     else
@@ -188,6 +188,10 @@ while [["$testfqdn" == ""]]; do
     sleep $check_interval
 done    
 
+clean_string=$(echo "$testfqdn" | tr '\n\r' ' ')
+clean_fqdn=$(echo "$clean_string" | awk '{print $NF}')
+
+# Print out the FQDN...
 echo "======================================================"
-echo " curl -kv https://$testfqdn/"
+echo " curl -kv https://$clean_fqdn/"
 echo "======================================================"
