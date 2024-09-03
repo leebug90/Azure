@@ -284,7 +284,8 @@ EOF
     ;;
   "Lab2")
     echo "Lab2 for Header Rewriting."
-    fqdnIp=$(dig +short $clean_fqdn)
+    fqdnIp=$(nslookup "$clean_fqdn" | awk '/^Address: / { print $2 }')
+    #fqdnIp=$(dig +short $clean_fqdn)
     test_lab=$(cat <<EOF
 curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com
 curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com -H "user-agent: Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm) Chrome/"
