@@ -300,7 +300,7 @@ esac
 
 # Print out the FQDN...
 echo "======================================================"
-echo " curl -kv https://$clean_fqdn/"
+echo " FQDN: $clean_fqdn
 echo "======================================================"
 
 # Passing FQDN value over to ARM template
