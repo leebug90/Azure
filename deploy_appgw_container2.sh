@@ -271,6 +271,7 @@ done
 
 clean_string=$(echo "$testfqdn" | tr '\n\r' ' ')
 clean_fqdn=$(echo "$clean_string" | awk '{print $NF}')
+echo "FQDN after programmed: $clean_fqdn"
 
 # Prepare for Lab Test Scenario
 echo "Creating Lab Test Plan..."
