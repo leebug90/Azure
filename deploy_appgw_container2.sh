@@ -7,7 +7,7 @@ ALB_SUBNET_NAME=$5
 ALB_Version=$6
 Lab_Scenario=$7
 
-echo "data from arguments ==> $AKS_NAME $IDENTITY_RESOURCE_NAME $RESOURCE_GROUP $VNET_NAME $ALB_SUBNET_NAME $ALB_Version"
+echo "data from arguments ==> $AKS_NAME $IDENTITY_RESOURCE_NAME $RESOURCE_GROUP $VNET_NAME $ALB_SUBNET_NAME $ALB_Version $Lab_Scenario"
 echo "Install kubectl.."
 az aks install-cli --only-show-errors
 sleep 5
