@@ -76,7 +76,7 @@ metadata:
 EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
-
+# Deploy Application Gateway for Container
 command="kubectl apply -f - <<EOF
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
@@ -89,7 +89,7 @@ spec:
 EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
-# Deploy sample HTTP application
+# Deploy a sample HTTP application for SSL/TLS termination
 command="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
