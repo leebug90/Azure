@@ -154,7 +154,7 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 start_time=$(date +%s)
 
 # Set the timeout duration (in seconds)
-timeout_duration=300
+timeout_duration=600
 
 # Set the check interval (in seconds)
 check_interval=5
