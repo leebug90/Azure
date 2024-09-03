@@ -157,7 +157,7 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 start_time=$(date +%s)
 
 # Set the timeout duration (in seconds)
-timeout_duration=600
+timeout_duration=300
 
 # Set the check interval (in seconds)
 check_interval=5
@@ -181,13 +181,11 @@ while [[ "$testfqdn" != *"alb.azure.com"* ]]; do
 
     # Check the value of testfqdn
     testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
-    echo "FQDN value inside the loop: $testfqdn  "
-    
     if [[ "$testfqdn" == *"alb.azure.com"* ]]; then
         echo "test_result is 'ok'."
         break
-    else
-        echo "Waiting for testfqdn to become 'ok'... (Elapsed time: ${elapsed_time}s)"
+    #else
+        #echo "Waiting for testfqdn to become 'ok'... (Elapsed time: ${elapsed_time}s)"
     fi
 
     # Wait for the specified check interval before checking again
