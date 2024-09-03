@@ -57,8 +57,8 @@ sleep 10
 
 # Delegate a subnet to association resource
 #az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
-#ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
-#echo "ALB subnet ID==> $ALB_SUBNET_ID"
+ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
+echo "ALB subnet ID==> $ALB_SUBNET_ID"
 
 
 # Delegate AppGw for Containers Configuration Manager role to AKS Managed Cluster RG
