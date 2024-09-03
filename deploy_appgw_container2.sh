@@ -277,21 +277,17 @@ echo "Creating Lab Test Plan..."
 case $Lab_Scenario in
   "Lab1")
     echo "Lab1 for TLS/SSL offloading."
-    
     test_lab=$(cat <<EOF
 curl -kv https://$clean_fqdn/
-    EOF
-    )
+    EOF)
     ;;
   "Lab2")
     echo "Lab2 for Header Rewriting."
-    
     fqdnIp=$(dig +short $clean_fqdn)
     test_lab=$(cat <<EOF
 curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com
 curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com -H "user-agent: Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm) Chrome/"
-    EOF
-    )
+    EOF)
     ;;
   *)
     echo "Sorry, I don't have information on that Lab."
