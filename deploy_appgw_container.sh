@@ -199,3 +199,6 @@ clean_fqdn=$(echo "$clean_string" | awk '{print $NF}')
 echo "======================================================"
 echo " curl -kv https://$clean_fqdn/"
 echo "======================================================"
+
+# Passing FQDN value over to ARM template
+echo "{\"TestFQDN\":\"$clean_fqdn\"}" | jq -c '.' > $AZ_SCRIPTS_OUTPUT_PATH
