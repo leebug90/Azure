@@ -93,10 +93,10 @@ EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 ############################################################
-# Lab Scenario List
-# 1 - TLS/SSL offload
-# 2 - Header Rewriting
-# 3 - Multi-site Hosting
+# Lab Scenario List 
+# Lab1 - TLS/SSL offload
+# Lab2 - Header Rewriting
+# Lab3 - Multi-site Hosting
 ############################################################
 
 # Lab1 - TLS/SSL offload
