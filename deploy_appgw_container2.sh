@@ -301,7 +301,7 @@ esac
 
 # Print out the FQDN...
 echo "======================================================"
-echo " FQDN: $clean_fqdn
+echo " Test Plan: $test_lab
 echo "======================================================"
 
 # Passing FQDN value over to ARM template
