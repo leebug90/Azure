@@ -12,17 +12,17 @@ az aks install-cli --only-show-errors
 sleep 5
 
 # Create a user managed identity for ALB controller and federate the identity as Workload identity to use in AKS cluster
-mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
-mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
+#mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
+#mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
 
 #echo "Creating identity $IDENTITY_RESOURCE_NAME in resource group $RESOURCE_GROUP"
 #az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
-principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
+#principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
 
-echo "Waiting 60 seconds to allow for replication of the identity..."
-sleep 60
+#echo "Waiting 60 seconds to allow for replication of the identity..."
+#sleep 60
 
-echo "Apply Reader role to the AKS managed cluster resource group for the newly provisioned identity"
+#echo "Apply Reader role to the AKS managed cluster resource group for the newly provisioned identity"
 #az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "acdd72a7-3385-48ef-bd42-f606fba81ae7" # Reader role
 
 echo "Set up federation with AKS OIDC issuer"
@@ -45,7 +45,7 @@ echo "Installing Helm..."
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 sleep 5
 
-echo "login to AKS cluster to use kubctl"
+echo "login to AKS cluster to use kubctl..."
 az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_NAME --overwrite-existing
 
 helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-controller \
@@ -57,8 +57,8 @@ sleep 10
 
 # Delegate a subnet to association resource
 #az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
-ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
-echo "ALB subnet ID==> $ALB_SUBNET_ID"
+#ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
+#echo "ALB subnet ID==> $ALB_SUBNET_ID"
 
 
 # Delegate AppGw for Containers Configuration Manager role to AKS Managed Cluster RG
@@ -68,6 +68,7 @@ echo "ALB subnet ID==> $ALB_SUBNET_ID"
 #az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
 
 # Create ApplicationLoadBalancer Kubernetes resource
+echo "Creating Application Load Balancer..."
 command="kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
@@ -77,6 +78,7 @@ EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
 # Deploy Application Gateway for Container
+echo "Deploying Application Gateway for Container..."
 command="kubectl apply -f - <<EOF
 apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
@@ -89,7 +91,8 @@ spec:
 EOF"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
-# Deploy a sample HTTP application for SSL/TLS termination
+# Deploy a sample HTTP application for SSL offload
+echo "Deploying a sample SSL offload..."
 command="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
 az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command"
 
@@ -163,7 +166,7 @@ command="kubectl get gateway gateway-01 -n test-infra -o jsonpath='{.status.addr
 testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
 echo "FQDN value at the begining: $testfqdn  "
 
-while [["$testfqdn" != *"alb.azure.com"*]]; do
+while [[ "$testfqdn" != *"alb.azure.com"* ]]; do
     # Get the current time
     current_time=$(date +%s)
 
@@ -180,7 +183,7 @@ while [["$testfqdn" != *"alb.azure.com"*]]; do
     testfqdn=$(az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$command")
     echo "FQDN value inside the loop: $testfqdn  "
     
-    if [["$testfqdn" == *"alb.azure.com"*]]; then
+    if [[ "$testfqdn" == *"alb.azure.com"* ]]; then
         echo "test_result is 'ok'."
         break
     else
