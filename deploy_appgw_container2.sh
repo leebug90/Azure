@@ -286,6 +286,7 @@ EOF
   "Lab2")
     echo "Lab2 for Header Rewriting."
     fqdnIp=$(nslookup "$clean_fqdn" | awk '/^Address: / { print $2 }')
+    echo "Resolved IP: $fqdnIp"
     #fqdnIp=$(dig +short $clean_fqdn)
     test_lab=$(cat <<EOF
 curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com
