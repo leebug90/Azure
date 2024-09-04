@@ -232,7 +232,7 @@ spec:
         group: ""
         name: listener-tls-secret
 EOF"
-cmdRoute_lab3="kubectl apply -f - <<EOF
+cmdRoute1_lab3="kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -245,6 +245,54 @@ spec:
   hostnames:
   - "contoso.com"
   rules:
+  - backendRefs:
+    - name: echo
+      port: 80
+EOF"
+cmdRoute2_lab3="kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https-contoso-redirect
+  namespace: test-infra
+spec:
+  parentRefs:
+  - name: gateway-01
+    sectionName: http-listener
+  hostnames:
+  - "contoso.com"
+  rules:
+    - matches:
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+EOF"
+cmdRoute3_lab3="kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: summer-promotion-redirect
+  namespace: test-infra
+spec:
+  parentRefs:
+  - name: gateway-01
+    sectionName: https-listener
+  hostnames:
+  - "contoso.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /summer-promotion
+    filters:
+      - type: RequestRedirect
+        requestRedirect:
+          path:
+            type: ReplaceFullPath
+            replaceFullPath: /shop/category/5
+          statusCode: 302
   - backendRefs:
     - name: echo
       port: 80
@@ -327,7 +375,11 @@ case $Lab_Scenario in
     sleep 2
     az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdGw_lab3"
     sleep 2
-    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute_lab3"
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute1_lab3"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute2_lab3"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute3_lab3"
     sleep 2
     ;;
   "Lab4")
