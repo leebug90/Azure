@@ -202,7 +202,6 @@ EOF"
 # Lab3 - URL Redirect
 cmdApp_lab3="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
 cmdGw_lab3="kubectl apply -f - <<EOF
-kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -234,7 +233,6 @@ spec:
         name: listener-tls-secret
 EOF"
 cmdRoute_lab3="kubectl apply -f - <<EOF
-kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -255,7 +253,6 @@ EOF"
 # Lab4 - URL Rewrite
 cmdApp_lab4="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
 cmdGw_lab4="kubectl apply -f - <<EOF
-kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -275,7 +272,6 @@ spec:
         from: Same
 EOF"
 cmdRoute_lab4="kubectl apply -f - <<EOF
-kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
