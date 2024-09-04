@@ -96,7 +96,8 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 # Lab Scenario List 
 # Lab1 - TLS/SSL offload
 # Lab2 - Header Rewriting
-# Lab3 - Multi-site Hosting
+# Lab3 - URL Redirect
+# Lab4 - URL Rewrite
 ############################################################
 
 # Lab1 - TLS/SSL offload
@@ -198,6 +199,112 @@ spec:
           port: 8080
 EOF"
 
+# Lab3 - URL Redirect
+cmdApp_lab3="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
+cmdGw_lab3="kubectl apply -f - <<EOF
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway-01
+  namespace: test-infra
+  annotations:
+    alb.networking.azure.io/alb-namespace: alb-test-infra
+    alb.networking.azure.io/alb-name: alb-test
+spec:
+  gatewayClassName: azure-alb-external
+  listeners:
+  - name: http-listener
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Same
+  - name: https-listener
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: Same
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind : Secret
+        group: ""
+        name: listener-tls-secret
+EOF"
+cmdRoute_lab3="kubectl apply -f - <<EOF
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: https-contoso
+  namespace: test-infra
+spec:
+  parentRefs:
+  - name: gateway-01
+    sectionName: https-listener
+  hostnames:
+  - "contoso.com"
+  rules:
+  - backendRefs:
+    - name: echo
+      port: 80
+EOF"
+
+# Lab4 - URL Rewrite
+cmdApp_lab4="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
+cmdGw_lab4="kubectl apply -f - <<EOF
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway-01
+  namespace: test-infra
+  annotations:
+    alb.networking.azure.io/alb-namespace: alb-test-infra
+    alb.networking.azure.io/alb-name: alb-test
+spec:
+  gatewayClassName: azure-alb-external
+  listeners:
+  - name: http-listener
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Same
+EOF"
+cmdRoute_lab4="kubectl apply -f - <<EOF
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rewrite-example
+  namespace: test-infra
+spec:
+  parentRefs:
+  - name: gateway-01
+  hostnames:
+  - "contoso.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /shop
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /ecommerce
+      backendRefs:
+        - name: backend-v1
+          port: 8080
+    - backendRefs:
+        - name: backend-v2
+          port: 8080
+EOF"
+
 echo "Deploy HTTP application, Gateway API, and Route..."
 case $Lab_Scenario in
   "Lab1")
@@ -218,6 +325,24 @@ case $Lab_Scenario in
     az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute_lab2"
     sleep 2
     ;;
+  "Lab3")
+    echo "Deploying the Lab3 for URL Redirect."
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdApp_lab3"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdGw_lab3"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute_lab3"
+    sleep 2
+    ;;
+  "Lab4")
+    echo "Deploying the Lab3 for URL Rewrite."
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdApp_lab4"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdGw_lab4"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute_lab4"
+    sleep 2
+    ;;
   *)
     echo "Sorry, I don't have information on that Lab."
     ;;
@@ -233,7 +358,7 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 # Initialize the start time
 start_time=$(date +%s)
 
-# Set the timeout duration (in seconds)
+# Set the timeout duration (in seconds); Wait for 5min
 timeout_duration=300
 
 # Set the check interval (in seconds)
@@ -273,37 +398,5 @@ clean_string=$(echo "$testfqdn" | tr '\n\r' ' ')
 clean_fqdn=$(echo "$clean_string" | awk '{print $NF}')
 echo "FQDN after programmed: $clean_fqdn"
 
-# Prepare for Lab Test Scenario
-echo "Creating Lab Test Plan..."
-case $Lab_Scenario in
-  "Lab1")
-    echo "Lab1 for TLS/SSL offloading."
-    test_lab=$(cat <<EOF
-curl -kv https://$clean_fqdn/
-EOF
-)
-    ;;
-  "Lab2")
-    echo "Lab2 for Header Rewriting."
-    fqdnIp=$(nslookup "$clean_fqdn" | awk '/^Address: / { print $2 }')
-    echo "Resolved IP: $fqdnIp"
-    #fqdnIp=$(dig +short $clean_fqdn)
-    test_lab=$(cat <<EOF
-curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com
-curl -k --resolve contoso.com:80:$fqdnIp http://contoso.com -H "user-agent: Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm) Chrome/"
-EOF
-)
-    ;;
-  *)
-    echo "Sorry, I don't have information on that Lab."
-    ;;
-esac
-
-
-# Print out the FQDN...
-echo "======================================================"
-echo " Test Plan: $test_lab
-echo "======================================================"
-
 # Passing FQDN value over to ARM template
-echo "{\"TestPlan\":\"$test_lab\"}" | jq -c '.' > $AZ_SCRIPTS_OUTPUT_PATH
+echo "{\"TestFQDN\":\"$clean_fqdn\"}" | jq -c '.' > $AZ_SCRIPTS_OUTPUT_PATH
