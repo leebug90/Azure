@@ -299,7 +299,7 @@ spec:
 EOF"
 
 # Lab4 - URL Rewrite
-cmdApp_lab4="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/https-scenario/ssl-termination/deployment.yaml"
+cmdApp_lab4="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/traffic-split-scenario/deployment.yaml"
 cmdGw_lab4="kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
