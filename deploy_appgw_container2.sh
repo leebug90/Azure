@@ -98,6 +98,7 @@ az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --comman
 # Lab2 - Header Rewriting
 # Lab3 - URL Redirect
 # Lab4 - URL Rewrite
+# Lab5 - Multi-site hosting
 ############################################################
 
 # Lab1 - TLS/SSL offload
@@ -349,6 +350,59 @@ spec:
           port: 8080
 EOF"
 
+# Lab5 - Multi-site hosting
+cmdApp_lab5="kubectl apply -f https://trafficcontrollerdocs.blob.core.windows.net/examples/traffic-split-scenario/deployment.yaml"
+cmdGw_lab5="kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway-01
+  namespace: test-infra
+  annotations:
+    alb.networking.azure.io/alb-namespace: alb-test-infra
+    alb.networking.azure.io/alb-name: alb-test
+spec:
+  gatewayClassName: azure-alb-external
+  listeners:
+  - name: http-listener
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Same
+EOF"
+cmdRoute_lab5="kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: contoso-route
+  namespace: test-infra
+spec:
+  parentRefs:
+  - name: gateway-01
+  hostnames:
+  - "contoso.com"
+  rules:
+  - backendRefs:
+    - name: backend-v1
+      port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: fabrikam-route
+  namespace: test-infra
+spec:
+  parentRefs:
+  - name: gateway-01
+  hostnames:
+  - "fabrikam.com"
+  rules:
+  - backendRefs:
+    - name: backend-v2
+      port: 8080
+EOF"
+
 echo "Deploy HTTP application, Gateway API, and Route..."
 case $Lab_Scenario in
   "Lab1")
@@ -383,12 +437,21 @@ case $Lab_Scenario in
     sleep 2
     ;;
   "Lab4")
-    echo "Deploying the Lab3 for URL Rewrite."
+    echo "Deploying the Lab4 for URL Rewrite."
     az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdApp_lab4"
     sleep 2
     az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdGw_lab4"
     sleep 2
     az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute_lab4"
+    sleep 2
+    ;;
+  "Lab5")
+    echo "Deploying the Lab5 for Multi-site hosting."
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdApp_lab5"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdGw_lab5"
+    sleep 2
+    az aks command invoke --name $AKS_NAME --resource-group $RESOURCE_GROUP --command "$cmdRoute_lab5"
     sleep 2
     ;;
   *)
