@@ -7,24 +7,12 @@ ALB_SUBNET_NAME=$5
 ALB_Version=$6
 Lab_Scenario=$7
 
+# check the values from ARM template
 echo "data from arguments ==> $AKS_NAME $IDENTITY_RESOURCE_NAME $RESOURCE_GROUP $VNET_NAME $ALB_SUBNET_NAME $ALB_Version $Lab_Scenario"
+
 echo "Install kubectl.."
 az aks install-cli --only-show-errors
 sleep 5
-
-# Create a user managed identity for ALB controller and federate the identity as Workload identity to use in AKS cluster
-#mcResourceGroup=$(az aks show --resource-group $RESOURCE_GROUP --name $AKS_NAME --query "nodeResourceGroup" -o tsv)
-#mcResourceGroupId=$(az group show --name $mcResourceGroup --query id -o tsv)
-
-#echo "Creating identity $IDENTITY_RESOURCE_NAME in resource group $RESOURCE_GROUP"
-#az identity create --resource-group $RESOURCE_GROUP --name $IDENTITY_RESOURCE_NAME
-#principalId="$(az identity show -g $RESOURCE_GROUP -n $IDENTITY_RESOURCE_NAME --query principalId -o tsv)"
-
-#echo "Waiting 60 seconds to allow for replication of the identity..."
-#sleep 60
-
-#echo "Apply Reader role to the AKS managed cluster resource group for the newly provisioned identity"
-#az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "acdd72a7-3385-48ef-bd42-f606fba81ae7" # Reader role
 
 echo "Set up federation with AKS OIDC issuer"
 AKS_OIDC_ISSUER="$(az aks show -n "$AKS_NAME" -g "$RESOURCE_GROUP" --query "oidcIssuerProfile.issuerUrl" -o tsv)"
@@ -34,14 +22,7 @@ az identity federated-credential create --name "azure-alb-identity" \
     --issuer "$AKS_OIDC_ISSUER" \
     --subject "system:serviceaccount:azure-alb-system:alb-controller-sa"
 
-# Install ALB controller in the default namespaces 
-#   - default for helm chart & azure-alb-sytem for ALB controller
-
-# otherwise, use the options
-# --namespace <helm-resource-namespace>
-# --set albController.namespace=<alb-controller-namespace>
-
-# Install Helm
+# Install Helm package
 echo "Installing Helm..."
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 sleep 5
@@ -56,19 +37,11 @@ helm install alb-controller oci://mcr.microsoft.com/application-lb/charts/alb-co
 echo "Wait for 10 seconds after installing ALB controller..."
 sleep 10
 
-# Delegate a subnet to association resource
-#az network vnet subnet update --resource-group $RESOURCE_GROUP --name $ALB_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ServiceNetworking/trafficControllers'
+# Getting Subnet ID for Application Gateway for Container
 ALB_SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query "[?name=='$ALB_SUBNET_NAME'].id" --output tsv)
 echo "ALB subnet ID==> $ALB_SUBNET_ID"
 
-
-# Delegate AppGw for Containers Configuration Manager role to AKS Managed Cluster RG
-#az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $mcResourceGroupId --role "fbc52c3f-28ad-4303-a892-8a056630b8f1" 
-
-# Delegate Network Contributor permission for join to association subnet
-#az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --scope $ALB_SUBNET_ID --role "4d97b98b-1d4f-4787-a291-c67834d212e7" 
-
-# Create ApplicationLoadBalancer Kubernetes resource
+# Create LoadBalancer Kubernetes resource
 echo "Creating Application Load Balancer..."
 command="kubectl apply -f - <<EOF
 apiVersion: v1
